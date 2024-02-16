@@ -103,6 +103,8 @@ private:
 
 	bool										m_DisableCaching = false;
 
+	FString										m_Theme;
+
 	FLinearColor								m_WallAlbedo = FLinearColor(0.2, 0.2, 0.2, 1.0);
 	FLinearColor								m_RoofAlbedo = FLinearColor(0.1, 0.1, 0.1, 1.0);;
 

@@ -99,6 +99,9 @@ void UStreamingCityGMLLayer::ExtractParameters(const FJsonObject &Parameters, FT
 
 		m_DrawTileBorders &= Parameters.TryGetBoolField(TEXT("draw_tile_borders"), m_DrawTileBorders);
 
+		if (Parameters.HasTypedField<EJson::String>(TEXT("theme")))
+			m_Theme = Parameters.GetStringField("theme");
+
 		if (Parameters.HasTypedField<EJson::Array>(TEXT("wall_albedo")))
 		{
 			const TArray<TSharedPtr<FJsonValue>> arrayVals = Parameters.GetArrayField(TEXT("wall_albedo"));
@@ -310,7 +313,7 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 			||	m_MeshGeneratorPtr->LoadFromCache(m_FileName, m_LowerLeft) == false
 			)
 		{
-			TSharedPtr<GenericTwin::ICityGMLImporter> importer;
+			TSharedPtr<GenericTwin::ICityGMLImporter> importer = FGenericTwinCityGMLImportModule::GetImporter();
 			if	(	importer
 				&&	importer->Load(m_FileName)
 				)
@@ -320,7 +323,7 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 
 				Transform transform(m_GeoReferencingSystem, m_LowerLeft);
 
-				TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(transform, "rgbTexture");
+				TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(transform, m_Layer.m_Theme);
 				m_MeshGeneratorPtr->Build(buildings);
 				m_MeshGeneratorPtr->CompressTextures(false);
 

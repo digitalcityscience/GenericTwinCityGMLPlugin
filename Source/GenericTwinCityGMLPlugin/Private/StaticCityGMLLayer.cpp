@@ -143,6 +143,9 @@ void UStaticCityGMLLayer::extractParameters(const FJsonObject &Parameters)
 		for(const auto &p : parts)
 			m_Files.Add( p.TrimStartAndEnd() );
 
+		if (Parameters.HasTypedField<EJson::String>(TEXT("theme")))
+			m_Theme = Parameters.GetStringField("theme");
+
 
 		if (Parameters.HasTypedField<EJson::Array>(TEXT("wall_albedo")))
 		{
@@ -264,7 +267,7 @@ GenericTwin::TJobBasePtr UStaticCityGMLLayer::LoadModelJob::Execute()
 
 				Transform transform(m_GeoReferencingSystem, m_LowerLeft);
 
-				TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(transform, TEXT("rgbTexture"));
+				TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(transform, m_Layer.m_Theme);
 				m_MeshGeneratorPtr->Build(buildings);
 				m_MeshGeneratorPtr->CompressTextures(false);
 
