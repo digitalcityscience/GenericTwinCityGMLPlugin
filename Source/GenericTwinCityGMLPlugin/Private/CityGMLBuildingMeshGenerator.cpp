@@ -362,3 +362,18 @@ bool FCityGMLBuildingMeshGenerator::LoadFromCache(const FString &Url, FVector &L
 
 	return loadedFromCache;
 }
+
+#if WITH_EDITOR
+
+TArray<GenericTwin::SImagePtr> FCityGMLBuildingMeshGenerator::GetAtlasImages() const
+{
+	TArray<GenericTwin::SImagePtr> images;
+	for(const TextureAtlasPtr &texAtlasPtr : m_Atlases)
+	{
+		images.Add(texAtlasPtr->GetAtlasImage());
+	}
+
+	return images;
+}
+
+#endif

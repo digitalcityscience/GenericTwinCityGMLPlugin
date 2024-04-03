@@ -58,4 +58,4 @@ TSharedPtr<GenericTwin::ICityGMLImporter> FGenericTwinCityGMLImportModule::GetIm
 
 #undef LOCTEXT_NAMESPACE
 	
-IMPLEMENT_MODULE(FGenericTwinCityGMLImportModule, GenericTwinCityGMLPlugin)
+IMPLEMENT_MODULE(FGenericTwinCityGMLImportModule, GenericTwinCityGMLImport)

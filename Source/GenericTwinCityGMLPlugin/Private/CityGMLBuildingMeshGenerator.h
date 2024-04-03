@@ -42,7 +42,7 @@ class FCacheKey;
 
 class UTexture2DArray;
 
-class FCityGMLBuildingMeshGenerator
+class GENERICTWINCITYGMLPLUGIN_API FCityGMLBuildingMeshGenerator
 {
 private:
 
@@ -113,6 +113,12 @@ public:
 
 	void SaveToCache(const FString &Url, const FVector &LowerLeft);
 	bool LoadFromCache(const FString &Url, FVector &LowerLeft);
+
+#if WITH_EDITOR
+
+	TArray<GenericTwin::SImagePtr> GetAtlasImages() const;
+
+#endif
 
 private:
 

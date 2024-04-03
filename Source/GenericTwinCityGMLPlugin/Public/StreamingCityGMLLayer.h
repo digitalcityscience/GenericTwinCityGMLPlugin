@@ -120,6 +120,8 @@ private:
 	FLinearColor							m_WallAlbedo = FLinearColor(0.2, 0.2, 0.2, 1.0);
 	FLinearColor							m_RoofAlbedo = FLinearColor(0.1, 0.1, 0.1, 1.0);
 
+	float									m_HeightOffset = 0.0f;
+
 	UPROPERTY()
 	UMaterialInterface						*m_TexturedBaseMaterial = 0;
 

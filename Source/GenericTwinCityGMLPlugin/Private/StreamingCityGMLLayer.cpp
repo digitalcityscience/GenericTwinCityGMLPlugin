@@ -114,6 +114,9 @@ void UStreamingCityGMLLayer::ExtractParameters(const FJsonObject &Parameters, FT
 			m_RoofAlbedo = FLinearColor(arrayVals[0]->AsNumber(), arrayVals[1]->AsNumber(), arrayVals[2]->AsNumber(), 1.0f);
 		}
 
+		if (Parameters.HasTypedField<EJson::Number>(TEXT("height_offset_m")))
+			m_HeightOffset = static_cast<float>(Parameters.GetNumberField(TEXT("height_offset_m"))) * 100.0f;
+
 		if (Parameters.HasTypedField<EJson::Boolean>(TEXT("disable_caching")))
 			m_DisableCaching = Parameters.GetBoolField(TEXT("disable_caching"));
 
@@ -287,9 +290,10 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 	{
 	public:
 
-		Transform(AGeoReferencingSystem &geoRefSystem, const FVector &refPointUE)
+		Transform(AGeoReferencingSystem &geoRefSystem, const FVector &refPointUE, float heightOffset)
 			:	m_GeoRefSystem(geoRefSystem)
 			,	m_RefPointUE(refPointUE)
+			,	m_HeightOffset(heightOffset)
 		{	}
 
 		virtual FVector operator() (const FVector &pos) override
@@ -297,6 +301,7 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 			FVector transformed;
 			m_GeoRefSystem.ProjectedToEngine(pos, transformed);
 			transformed -= m_RefPointUE;
+			transformed.Z  += m_HeightOffset;
 			return transformed;
 		}
 
@@ -304,6 +309,7 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 
 		AGeoReferencingSystem	&m_GeoRefSystem;
 		FVector					m_RefPointUE;
+		float					m_HeightOffset = 0.0f;
 	};
 
 	m_MeshGeneratorPtr = TSharedPtr<FCityGMLBuildingMeshGenerator>( new FCityGMLBuildingMeshGenerator(0.2f, FPaths::GetPath(m_FileName), 4096) );
@@ -321,7 +327,7 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 				m_GeoReferencingSystem.ProjectedToEngine(importer->GetMinExtent(), m_LowerLeft);
 				m_LowerLeft.Z = 0.0;
 
-				Transform transform(m_GeoReferencingSystem, m_LowerLeft);
+				Transform transform(m_GeoReferencingSystem, m_LowerLeft, m_Layer.m_HeightOffset);
 
 				TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(transform, m_Layer.m_Theme);
 				m_MeshGeneratorPtr->Build(buildings);
