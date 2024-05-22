@@ -78,7 +78,7 @@ public:
 
 	static const SLayerMetaData& GetLayerMetaData();
 	static TSharedPtr<FJsonObject> GetDefaultConfiguration();
-	static ULayerBase* Create(FTwinWorldContext &TwinWorldCtx, const FJsonObject &Parameters);
+	static ULayerBase* Create(FTwinWorldContext &TwinWorldCtx, const TSharedPtr<FJsonObject> &Parameters);
 
 	UStreamingCityGMLLayer();
 

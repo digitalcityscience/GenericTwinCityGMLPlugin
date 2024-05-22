@@ -69,14 +69,14 @@ TSharedPtr<FJsonObject> UStreamingCityGMLLayer::GetDefaultConfiguration()
 	return defaultConfig;
 }
 
-ULayerBase* UStreamingCityGMLLayer::Create(FTwinWorldContext &TwinWorldCtx, const FJsonObject &Parameters)
+ULayerBase* UStreamingCityGMLLayer::Create(FTwinWorldContext &TwinWorldCtx, const TSharedPtr<FJsonObject> &Parameters)
 {
 	UStreamingCityGMLLayer *layer = NewObject<UStreamingCityGMLLayer>(TwinWorldCtx.World, FName(), RF_Standalone);
 
 	if(layer)
 	{
 		layer->OnConstruction(GetLayerMetaData(), ELayerPriority::Medium);
-		layer->ExtractParameters(Parameters, TwinWorldCtx);
+		layer->ExtractParameters(*Parameters, TwinWorldCtx);
 	}
 
 	return layer;
