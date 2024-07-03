@@ -90,10 +90,10 @@ public:
 
 	virtual void OnEndPlay(FTwinWorldContext &TwinWorldCtx) override;
 
-	virtual void OnVisibilityChanged(FTwinWorldContext &TwinWorldCtx) override;
-
-
 	virtual TileBasePtr CreateTile(FTwinWorldContext &TwinWorldCtx, const GenericTwin::TTileId &TileId) override;
+
+	virtual const TSharedPtr<FJsonObject> GetRuntimeConfiguration() const override;
+	virtual void UpdateConfiguration(TSharedPtr<FJsonObject> UpdatedConfiguration) override;
 
 	bool LoadCityGMLTile(const GenericTwin::TTileId &TileId);
 

@@ -202,11 +202,6 @@ void UStreamingCityGMLLayer::OnEndPlay(FTwinWorldContext &TwinWorldCtx)
 	Super::OnEndPlay(TwinWorldCtx);
 }
 
-void UStreamingCityGMLLayer::OnVisibilityChanged(FTwinWorldContext &TwinWorldCtx)
-{
-	Super::OnVisibilityChanged(TwinWorldCtx);
-}
-
 TileBasePtr UStreamingCityGMLLayer::CreateTile(FTwinWorldContext &TwinWorldCtx, const GenericTwin::TTileId &TileId)
 {
 	UStreamingCityGMLTile *tile = 0;
@@ -226,6 +221,36 @@ TileBasePtr UStreamingCityGMLLayer::CreateTile(FTwinWorldContext &TwinWorldCtx, 
 	}
 
 	return TileBasePtr(tile);
+}
+
+const TSharedPtr<FJsonObject> UStreamingCityGMLLayer::GetRuntimeConfiguration() const
+{
+	ConfigurationJsonBuilder cfgBuilder;
+
+	cfgBuilder.Begin();
+
+	cfgBuilder.AddLiteralValue(TEXT("height_offset_m"), TEXT("number"), TEXT("Höhenoffset in m"), true, FString::SanitizeFloat(m_HeightOffset));
+
+	return cfgBuilder.Finalize();
+}
+
+void UStreamingCityGMLLayer::UpdateConfiguration(TSharedPtr<FJsonObject> UpdatedConfiguration)
+{
+	if(UpdatedConfiguration->HasTypedField<EJson::Number>(TEXT("height_offset_m")))
+	{
+		m_HeightOffset = UpdatedConfiguration->GetNumberField(TEXT("height_offset_m")) * 100.0;
+		
+		const float heightOffset = m_HeightOffset;
+		FProcessTileFunction updateHO;
+		updateHO.BindLambda([heightOffset](UTileBase& Tile) {
+			UStreamingCityGMLTile* gmlTile = Cast<UStreamingCityGMLTile>(&Tile);
+			if (gmlTile)
+			{
+				gmlTile->UpdatedHeightOffset(heightOffset);
+			}
+			});
+		ForEachTile(updateHO);
+	}
 }
 
 bool UStreamingCityGMLLayer::LoadCityGMLTile(const GenericTwin::TTileId &TileId)
@@ -290,10 +315,9 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 	{
 	public:
 
-		Transform(AGeoReferencingSystem &geoRefSystem, const FVector &refPointUE, float heightOffset)
+		Transform(AGeoReferencingSystem &geoRefSystem, const FVector &refPointUE)
 			:	m_GeoRefSystem(geoRefSystem)
 			,	m_RefPointUE(refPointUE)
-			,	m_HeightOffset(heightOffset)
 		{	}
 
 		virtual FVector operator() (const FVector &pos) override
@@ -301,7 +325,6 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 			FVector transformed;
 			m_GeoRefSystem.ProjectedToEngine(pos, transformed);
 			transformed -= m_RefPointUE;
-			transformed.Z  += m_HeightOffset;
 			return transformed;
 		}
 
@@ -327,7 +350,7 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 				m_GeoReferencingSystem.ProjectedToEngine(importer->GetMinExtent(), m_LowerLeft);
 				m_LowerLeft.Z = 0.0;
 
-				Transform transform(m_GeoReferencingSystem, m_LowerLeft, m_Layer.m_HeightOffset);
+				Transform transform(m_GeoReferencingSystem, m_LowerLeft);
 
 				TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(transform, m_Layer.m_Theme);
 				m_MeshGeneratorPtr->Build(buildings);
@@ -373,7 +396,7 @@ void UStreamingCityGMLLayer::LoadModelJob::OnJobFinished()
 			actor->AddMeshSection(m_MeshGeneratorPtr->GetWallMeshSection(), m_Layer.m_WallMaterial);
 
 			actor->SetActorHiddenInGame(!m_Layer.m_isVisible);
-			actor->SetActorLocation(m_LowerLeft);	// m_Layer.m_TileIndex->GetTileOrigin(m_TilePtr->GetTileId()));
+			actor->SetActorLocation(FVector(m_LowerLeft.X, m_LowerLeft.Y, m_LowerLeft.Z + m_Layer.m_HeightOffset));	// m_Layer.m_TileIndex->GetTileOrigin(m_TilePtr->GetTileId()));
 
 		}
 

@@ -102,3 +102,12 @@ void UStreamingCityGMLTile::AddToWorld(const TObjectPtr<AGenericTwinCustomMeshAc
 		oldActor->ConditionalBeginDestroy();
 	}
 }
+
+void UStreamingCityGMLTile::UpdatedHeightOffset(float HeightOffset)
+{
+	if(m_Actor)
+	{
+		FVector pos = m_Actor->GetActorLocation();
+		m_Actor->SetActorLocation(FVector(pos.X, pos.Y, HeightOffset));
+	}
+}

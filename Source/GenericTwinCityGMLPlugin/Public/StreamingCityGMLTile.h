@@ -63,6 +63,8 @@ public:
 
 	void AddToWorld(const TObjectPtr<AGenericTwinCustomMeshActor> &Actor);
 
+	void UpdatedHeightOffset(float HeightOffset);
+
 private:
 
 	UStreamingCityGMLLayer						*m_Layer = 0;
