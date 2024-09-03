@@ -31,7 +31,8 @@ THE SOFTWARE.
 #include "StreamingCityGMLTile.h"
 
 #include "Streaming/TileIndexes/FileSystemTileIndex.h"
-#include "Utils/PathUtils.h"
+#include "Utils/FilePathUtils.h"
+#include "Actors/GenericTwinStaticMeshActor.h"
 
 #include "ICityGMLImporter.h"
 
@@ -142,7 +143,7 @@ void UStreamingCityGMLLayer::InitializeLayer(FTwinWorldContext &TwinWorldCtx)
 	public:
 
 		InitTileIndexJob(UStreamingCityGMLLayer &Layer, AGeoReferencingSystem &GeoReferencingSystem, const FString &FileName)
-			:	JobBase(EJobType::Background)
+			:	JobBase(GenericTwin::EJobType::Background)
 			,	m_Layer(Layer)
 			,	m_GeoReferencingSystem(GeoReferencingSystem)
 			,	m_FileName(FileName)
@@ -301,7 +302,7 @@ void UStreamingCityGMLLayer::CreateMaterials()
 
 
 UStreamingCityGMLLayer::LoadModelJob::LoadModelJob(UStreamingCityGMLLayer&Layer, AGeoReferencingSystem &GeoReferencingSystem, const FString &FileName, const CityGMLTilePtr &TilePtr)
-	:	JobBase(EJobType::Background)
+	:	JobBase(GenericTwin::EJobType::Background)
 	,	m_Layer(Layer)
 	,	m_GeoReferencingSystem(GeoReferencingSystem)
 	,	m_FileName(FileName)
@@ -369,13 +370,17 @@ void UStreamingCityGMLLayer::LoadModelJob::OnJobFinished()
 {
 	if(m_MeshGeneratorPtr)
 	{
-		AGenericTwinCustomMeshActor* actor = 0;
+		AGenericTwinStaticMeshActor* actor = 0;
 		
-		actor = m_Layer.GetWorld()->SpawnActor<AGenericTwinCustomMeshActor>(FVector::ZeroVector, FRotator::ZeroRotator, FActorSpawnParameters());
+		actor = m_Layer.GetWorld()->SpawnActor<AGenericTwinStaticMeshActor>(FVector::ZeroVector, FRotator::ZeroRotator, FActorSpawnParameters());
 		if(actor)
 		{
+			actor->Initialize();
+
+			TSharedPtr<FCityGMLBuildingMeshGenerator> meshGeneratorPtr = m_MeshGeneratorPtr;
 			if(m_MeshGeneratorPtr->GetTexturedMeshSection().IsEmpty() == false)
 			{
+				// Todo: store material instance as UPROPERTY to prevent garbage collection
 				UMaterialInstanceDynamic *materialInst = UMaterialInstanceDynamic::Create(m_Layer.m_TexturedBaseMaterial, m_Layer.GetWorld());
 				if(materialInst)
 				{
@@ -389,11 +394,18 @@ void UStreamingCityGMLLayer::LoadModelJob::OnJobFinished()
 						actor->AddTextureProxy(texProxyPtr);
 					}
 				}
-				actor->AddMeshSection(m_MeshGeneratorPtr->GetTexturedMeshSection(), materialInst);
+				// actor->AddMeshSection(m_MeshGeneratorPtr->GetTexturedMeshSection(), materialInst);
+				FGenericTwinJobDispatcher::Dispatch<void()>([actor, meshGeneratorPtr, materialInst]() {	actor->AddMeshSection(meshGeneratorPtr->GetTexturedMeshSection(), materialInst); }, GenericTwin::EJobType::Background);
 			}
 
-			actor->AddMeshSection(m_MeshGeneratorPtr->GetRoofMeshSection(), m_Layer.m_RoofMaterial);
-			actor->AddMeshSection(m_MeshGeneratorPtr->GetWallMeshSection(), m_Layer.m_WallMaterial);
+			UMaterialInstanceDynamic *roofMatInst = m_Layer.m_RoofMaterial;
+			FGenericTwinJobDispatcher::Dispatch<void()>([actor, meshGeneratorPtr, roofMatInst]() {	actor->AddMeshSection(meshGeneratorPtr->GetRoofMeshSection(), roofMatInst); }, GenericTwin::EJobType::Background);
+
+			UMaterialInstanceDynamic *wallMatInst = m_Layer.m_WallMaterial;
+			FGenericTwinJobDispatcher::Dispatch<void()>([actor, meshGeneratorPtr, wallMatInst]() {	actor->AddMeshSection(meshGeneratorPtr->GetWallMeshSection(), wallMatInst); }, GenericTwin::EJobType::Background);
+
+			// actor->AddMeshSection(m_MeshGeneratorPtr->GetRoofMeshSection(), m_Layer.m_RoofMaterial);
+			// actor->AddMeshSection(m_MeshGeneratorPtr->GetWallMeshSection(), m_Layer.m_WallMaterial);
 
 			actor->SetActorHiddenInGame(!m_Layer.m_isVisible);
 			actor->SetActorLocation(FVector(m_LowerLeft.X, m_LowerLeft.Y, m_LowerLeft.Z + m_Layer.m_HeightOffset));	// m_Layer.m_TileIndex->GetTileOrigin(m_TilePtr->GetTileId()));

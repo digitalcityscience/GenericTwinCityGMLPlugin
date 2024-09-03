@@ -36,7 +36,7 @@ THE SOFTWARE.
 
 #include "CityGMLBuildingMeshGenerator.h"
 
-#include "Utils/PathUtils.h"
+#include "Utils/FilePathUtils.h"
 
 #include "GeoReferencingSystem.h"
 #include "Kismet/GameplayStatics.h"
@@ -217,7 +217,7 @@ void UStaticCityGMLLayer::OnEndPlay(FTwinWorldContext &TwinWorldCtx)
 }
 
 UStaticCityGMLLayer::LoadModelJob::LoadModelJob(UStaticCityGMLLayer &Layer, AGeoReferencingSystem &GeoReferencingSystem, const FString &FileName)
-	:	JobBase(EJobType::Background)
+	:	JobBase(GenericTwin::EJobType::Background)
 	,	m_Layer(Layer)
 	,	m_GeoReferencingSystem(GeoReferencingSystem)
 	,	m_FileName(FileName)

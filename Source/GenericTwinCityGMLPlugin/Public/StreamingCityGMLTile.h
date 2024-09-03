@@ -37,7 +37,7 @@ struct SMeshSection;
 }	//	namespace GenericTwin
 
 class UStreamingCityGMLLayer;
-class AGenericTwinCustomMeshActor;
+class AGenericTwinStaticMeshActor;
 
 UCLASS()
 class UStreamingCityGMLTile	:	public UTileBase
@@ -61,16 +61,16 @@ public:
 
 	virtual void OnTileVisibilityChanged() override;
 
-	void AddToWorld(const TObjectPtr<AGenericTwinCustomMeshActor> &Actor);
+	void AddToWorld(const TObjectPtr<AGenericTwinStaticMeshActor> &Actor);
 
 	void UpdatedHeightOffset(float HeightOffset);
 
 private:
 
-	UStreamingCityGMLLayer						*m_Layer = 0;
+	UStreamingCityGMLLayer			*m_Layer = 0;
 
 	UPROPERTY()
-	TObjectPtr<AGenericTwinCustomMeshActor>		m_Actor;
+	AGenericTwinStaticMeshActor		*m_Actor = 0;
 
 };
 

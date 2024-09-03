@@ -27,6 +27,7 @@ THE SOFTWARE.
 
 
 #include "StreamingCityGMLTile.h"
+#include "Actors/GenericTwinStaticMeshActor.h"
 
 UStreamingCityGMLTile::UStreamingCityGMLTile()
 	:	m_Layer(0)
@@ -88,9 +89,9 @@ void UStreamingCityGMLTile::OnTileVisibilityChanged()
 	}
 }
 
-void UStreamingCityGMLTile::AddToWorld(const TObjectPtr<AGenericTwinCustomMeshActor> &Actor)
+void UStreamingCityGMLTile::AddToWorld(const TObjectPtr<AGenericTwinStaticMeshActor> &Actor)
 {
-	TObjectPtr<AGenericTwinCustomMeshActor> oldActor = m_Actor;
+	TObjectPtr<AGenericTwinStaticMeshActor> oldActor = m_Actor;
 
 	m_Actor = Actor;
 	OnTileVisibilityChanged();
