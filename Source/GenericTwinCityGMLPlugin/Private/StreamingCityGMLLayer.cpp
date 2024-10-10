@@ -376,6 +376,7 @@ void UStreamingCityGMLLayer::LoadModelJob::OnJobFinished()
 		if(actor)
 		{
 			actor->Initialize();
+			const auto jobType = actor->GetUploadMode() == GenericTwin::IStaticMeshComponent::EUploadMode::GameThread ? GenericTwin::EJobType::GameThread : GenericTwin::EJobType::Background;
 
 			TSharedPtr<FCityGMLBuildingMeshGenerator> meshGeneratorPtr = m_MeshGeneratorPtr;
 			if(m_MeshGeneratorPtr->GetTexturedMeshSection().IsEmpty() == false)
@@ -395,14 +396,14 @@ void UStreamingCityGMLLayer::LoadModelJob::OnJobFinished()
 					}
 				}
 				// actor->AddMeshSection(m_MeshGeneratorPtr->GetTexturedMeshSection(), materialInst);
-				FGenericTwinJobDispatcher::Dispatch<void()>([actor, meshGeneratorPtr, materialInst]() {	actor->AddMeshSection(meshGeneratorPtr->GetTexturedMeshSection(), materialInst); }, GenericTwin::EJobType::Background);
+				FGenericTwinJobDispatcher::Dispatch<void()>([actor, meshGeneratorPtr, materialInst]() {	actor->AddMeshSection(meshGeneratorPtr->GetTexturedMeshSection(), materialInst); }, jobType);
 			}
 
 			UMaterialInstanceDynamic *roofMatInst = m_Layer.m_RoofMaterial;
-			FGenericTwinJobDispatcher::Dispatch<void()>([actor, meshGeneratorPtr, roofMatInst]() {	actor->AddMeshSection(meshGeneratorPtr->GetRoofMeshSection(), roofMatInst); }, GenericTwin::EJobType::Background);
+			FGenericTwinJobDispatcher::Dispatch<void()>([actor, meshGeneratorPtr, roofMatInst]() {	actor->AddMeshSection(meshGeneratorPtr->GetRoofMeshSection(), roofMatInst); }, jobType);
 
 			UMaterialInstanceDynamic *wallMatInst = m_Layer.m_WallMaterial;
-			FGenericTwinJobDispatcher::Dispatch<void()>([actor, meshGeneratorPtr, wallMatInst]() {	actor->AddMeshSection(meshGeneratorPtr->GetWallMeshSection(), wallMatInst); }, GenericTwin::EJobType::Background);
+			FGenericTwinJobDispatcher::Dispatch<void()>([actor, meshGeneratorPtr, wallMatInst]() {	actor->AddMeshSection(meshGeneratorPtr->GetWallMeshSection(), wallMatInst); }, jobType);
 
 			// actor->AddMeshSection(m_MeshGeneratorPtr->GetRoofMeshSection(), m_Layer.m_RoofMaterial);
 			// actor->AddMeshSection(m_MeshGeneratorPtr->GetWallMeshSection(), m_Layer.m_WallMaterial);
