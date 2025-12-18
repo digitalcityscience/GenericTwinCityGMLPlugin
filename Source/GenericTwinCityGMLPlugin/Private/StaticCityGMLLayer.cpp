@@ -268,7 +268,7 @@ GenericTwin::TJobBasePtr UStaticCityGMLLayer::LoadModelJob::Execute()
 				Transform transform(m_GeoReferencingSystem, m_LowerLeft);
 
 				TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(transform, m_Layer.m_Theme);
-				m_MeshGeneratorPtr->Build(buildings);
+				m_MeshGeneratorPtr->Build(buildings, true);
 				m_MeshGeneratorPtr->CompressTextures(false);
 
 				if(m_Layer.m_DisableCaching == false)

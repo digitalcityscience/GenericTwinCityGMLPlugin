@@ -101,7 +101,7 @@ public:
 
 	~FCityGMLBuildingMeshGenerator();
 
-	void Build(const TArray<GenericTwin::SCityGMLBuilding> &Buildings);
+	void Build(const TArray<GenericTwin::SCityGMLBuilding> &Buildings, bool KeepTextured);
 
 	void CompressTextures(bool WithAlphaChannel);
 

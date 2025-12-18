@@ -34,6 +34,8 @@ THE SOFTWARE.
 #include "Utils/FilePathUtils.h"
 #include "Actors/GenericTwinStaticMeshActor.h"
 
+#include "Common/Caching/FeatureCache.h"
+
 #include "ICityGMLImporter.h"
 
 #include "ICityGMLProvider.h"
@@ -120,6 +122,9 @@ void UStreamingCityGMLLayer::ExtractParameters(const FJsonObject &Parameters, FT
 
 		if (Parameters.HasTypedField<EJson::Boolean>(TEXT("disable_caching")))
 			m_DisableCaching = Parameters.GetBoolField(TEXT("disable_caching"));
+
+		if (Parameters.HasTypedField<EJson::Boolean>(TEXT("fill_feature_cache")))
+			m_FillFeatureCache = Parameters.GetBoolField(TEXT("fill_feature_cache"));
 
 		UTileManager::SConfiguration config;
 		config.MaxViewDistance = (Parameters.HasTypedField<EJson::Number>(TEXT("view_distance")) ? Parameters.GetNumberField(TEXT("view_distance")) : 4000.0f) * 100.0;
@@ -336,6 +341,7 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 		float					m_HeightOffset = 0.0f;
 	};
 
+	const bool fillFeatureCache = m_Layer.m_FillFeatureCache;
 	m_MeshGeneratorPtr = TSharedPtr<FCityGMLBuildingMeshGenerator>( new FCityGMLBuildingMeshGenerator(0.2f, FPaths::GetPath(m_FileName), 4096) );
 	if(m_MeshGeneratorPtr)
 	{
@@ -354,16 +360,69 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 				Transform transform(m_GeoReferencingSystem, m_LowerLeft);
 
 				TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(transform, m_Layer.m_Theme);
-				m_MeshGeneratorPtr->Build(buildings);
+				m_MeshGeneratorPtr->Build(buildings, true);
 				m_MeshGeneratorPtr->CompressTextures(false);
 
 				if(m_Layer.m_DisableCaching == false)
 					m_MeshGeneratorPtr->SaveToCache(m_FileName, m_LowerLeft);
+
+				if(fillFeatureCache)
+					m_Layer.FillFeatureCache(buildings, m_GeoReferencingSystem, m_LowerLeft);
+			}
+		}
+		else if(fillFeatureCache)
+		{
+			// need to be loaded
+			TSharedPtr<GenericTwin::ICityGMLImporter> importer = FGenericTwinCityGMLImportModule::GetImporter();
+			if (importer
+				&& importer->Load(m_FileName)
+				)
+			{
+				m_GeoReferencingSystem.ProjectedToEngine(importer->GetMinExtent(), m_LowerLeft);
+				m_LowerLeft.Z = 0.0;
+
+				Transform transform(m_GeoReferencingSystem, m_LowerLeft);
+
+				TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(transform, "");
+
+				FCityGMLBuildingMeshGenerator meshGenerator(0.2f, FPaths::GetPath(m_FileName), 4096);
+				meshGenerator.Build(buildings, false);
+
+				m_Layer.FillFeatureCache(buildings, m_GeoReferencingSystem, m_LowerLeft);
 			}
 		}
 	}
 
 	return GenericTwin::TJobBasePtr();
+}
+
+void UStreamingCityGMLLayer::FillFeatureCache(const TArray<GenericTwin::SCityGMLBuilding> &Buildings, AGeoReferencingSystem	&GeoRefSystem, const FVector &LowerLeft)
+{
+	for(const GenericTwin::SCityGMLBuilding &building : Buildings)
+	{
+		// ToDo: simplify building into proxy geometry
+		FFeatureMesh featureMesh;
+		for(const GenericTwin::SCityGMLSurface &surface : building.surfaces)
+		{
+			if(surface.surface_type == GenericTwin::SCityGMLSurface::Type::Wall)
+			{
+				const int32 startIdx = featureMesh.Vertices.Num();
+				for(const GenericTwin::SCityGMLVertex &v : surface.vertices)
+				{
+					FGeographicCoordinates geo;
+					GeoRefSystem.EngineToGeographic(v.position + LowerLeft, geo);
+					featureMesh.Vertices.Add( FVector(geo.Longitude, geo.Latitude, geo.Altitude));
+				}
+				
+				for(int32 idx : surface.indices)
+					featureMesh.Indices.Add(idx + startIdx);
+
+			}
+		}
+		if(!featureMesh.Indices.IsEmpty())
+			UFeatureCache::GetInstance().AddFeature(EFeatureType::BUILDING, featureMesh, EFeatureGeometryType::PROXYMESH);
+	}
+
 }
 
 void UStreamingCityGMLLayer::LoadModelJob::OnJobFinished()

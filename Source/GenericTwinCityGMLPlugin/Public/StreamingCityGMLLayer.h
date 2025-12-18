@@ -34,6 +34,7 @@ THE SOFTWARE.
 namespace GenericTwin {
 
 class ILocationMapper;
+struct SCityGMLBuilding;
 
 }	//	namespace GenericTwin 
 
@@ -106,6 +107,8 @@ private:
 
 	void CreateMaterials();
 
+	void FillFeatureCache(const TArray<GenericTwin::SCityGMLBuilding> &Buildings, AGeoReferencingSystem	&GeoRefSystem, const FVector &LowerLeft);
+
 	GenericTwin::ILocationMapper			*m_LocationMapper = 0;
 
 	FString									m_StreamingConfigFile;
@@ -120,6 +123,7 @@ private:
 	FLinearColor							m_WallAlbedo = FLinearColor(0.2, 0.2, 0.2, 1.0);
 	FLinearColor							m_RoofAlbedo = FLinearColor(0.1, 0.1, 0.1, 1.0);
 
+	bool									m_FillFeatureCache = false;
 	float									m_HeightOffset = 0.0f;
 
 	UPROPERTY()

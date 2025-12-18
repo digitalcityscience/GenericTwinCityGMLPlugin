@@ -57,15 +57,18 @@ FCityGMLBuildingMeshGenerator::~FCityGMLBuildingMeshGenerator()
 }
 
 
-void FCityGMLBuildingMeshGenerator::Build(const TArray<GenericTwin::SCityGMLBuilding> &Buildings)
+void FCityGMLBuildingMeshGenerator::Build(const TArray<GenericTwin::SCityGMLBuilding> &Buildings, bool KeepTextured)
 {
-	BuildTextureAtlases(Buildings);
+	if(KeepTextured)
+		BuildTextureAtlases(Buildings);
 
 	for(const GenericTwin::SCityGMLBuilding &building : Buildings)
 	{
 		for(const GenericTwin::SCityGMLSurface &surface : building.surfaces)
 		{
-			if(m_AtlasMap.Contains(surface.texture_url))
+			if	(	KeepTextured
+				&&	m_AtlasMap.Contains(surface.texture_url)
+				)
 			{
 				AddTexturedSurface(surface);
 			}
@@ -270,6 +273,8 @@ void FCityGMLBuildingMeshGenerator::AddUntexturedSurface(const GenericTwin::SCit
 	if(surfaceType == GenericTwin::SCityGMLSurface::Type::Unknown)
 	{
 		surfaceType = Surface.vertices[Surface.indices[0]].normal.Z <= m_WallThreshold ? GenericTwin::SCityGMLSurface::Type::Wall : GenericTwin::SCityGMLSurface::Type::Roof;
+
+		(const_cast<GenericTwin::SCityGMLSurface&>(Surface)).surface_type = surfaceType;
 	}
 
 	if	(	surfaceType == GenericTwin::SCityGMLSurface::Type::Wall
