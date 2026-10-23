@@ -42,4 +42,6 @@ public:
 	virtual FVector operator() (const FVector &pos) = 0;
 };
 
+using ICityGMLCoordinateTransformPtr = TSharedPtr<ICityGMLCoordinateTransform>;
+
 }	//	namespace GenericTwin

@@ -32,12 +32,20 @@ THE SOFTWARE.
 #include "StaticCityGMLLayer.h"
 #include "StreamingCityGMLLayer.h"
 
+#include "Transformers/CityGMLCoordinateTransformerFactory.h"
+#include "Transformers/DefaultCityGMLCoordinateTransform.h"
+#include "Transformers/LatLonCityGMLCoordinateTransformer.h"
+
 #define LOCTEXT_NAMESPACE "FGenericTwinCityGMLPluginModule"
 
 void FGenericTwinCityGMLPluginModule::StartupModule()
 {
 	LayerRepository::GetInstance().RegisterLayer(UStaticCityGMLLayer::GetLayerMetaData(), &UStaticCityGMLLayer::Create, &UStaticCityGMLLayer::GetDefaultConfiguration);
 	LayerRepository::GetInstance().RegisterLayer(UStreamingCityGMLLayer::GetLayerMetaData(), &UStreamingCityGMLLayer::Create, &UStreamingCityGMLLayer::GetDefaultConfiguration);
+
+	GenericTwin::CityGMLCoordinateTransformerFactory::GetInstance().SetDefaultTransformer(&GenericTwin::DefaultCityGMLCoordinateTransform::Create);
+	GenericTwin::CityGMLCoordinateTransformerFactory::GetInstance().RegisterTransformer(TEXT("LatLonTransformer"), &GenericTwin::LatLonCityGMLCoordinateTransformer::Create);
+
 }
 
 void FGenericTwinCityGMLPluginModule::ShutdownModule()

@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include "TwinWorldContext.h"
 #include "Common/Configuration/ConfigurationJsonBuilder.h"
 #include "StreamingCityGMLTile.h"
+#include "Transformers/CityGMLCoordinateTransformerFactory.h"
 
 #include "Streaming/TileIndexes/FileSystemTileIndex.h"
 #include "Utils/FilePathUtils.h"
@@ -101,6 +102,9 @@ void UStreamingCityGMLLayer::ExtractParameters(const FJsonObject &Parameters, FT
 		m_StreamingConfigFile = Parameters.GetStringField("streaming_description");
 
 		m_DrawTileBorders &= Parameters.TryGetBoolField(TEXT("draw_tile_borders"), m_DrawTileBorders);
+
+		if (Parameters.HasTypedField<EJson::String>(TEXT("coordinate_transformer")))
+			m_TransformerName = Parameters.GetStringField("coordinate_transformer");
 
 		if (Parameters.HasTypedField<EJson::String>(TEXT("theme")))
 			m_Theme = Parameters.GetStringField("theme");
@@ -317,30 +321,6 @@ UStreamingCityGMLLayer::LoadModelJob::LoadModelJob(UStreamingCityGMLLayer&Layer,
 
 GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 {
-	class Transform	: public GenericTwin::ICityGMLCoordinateTransform
-	{
-	public:
-
-		Transform(AGeoReferencingSystem &geoRefSystem, const FVector &refPointUE)
-			:	m_GeoRefSystem(geoRefSystem)
-			,	m_RefPointUE(refPointUE)
-		{	}
-
-		virtual FVector operator() (const FVector &pos) override
-		{
-			FVector transformed;
-			m_GeoRefSystem.ProjectedToEngine(pos, transformed);
-			transformed -= m_RefPointUE;
-			return transformed;
-		}
-
-	private:
-
-		AGeoReferencingSystem	&m_GeoRefSystem;
-		FVector					m_RefPointUE;
-		float					m_HeightOffset = 0.0f;
-	};
-
 	const bool fillFeatureCache = m_Layer.m_FillFeatureCache;
 	m_MeshGeneratorPtr = TSharedPtr<FCityGMLBuildingMeshGenerator>( new FCityGMLBuildingMeshGenerator(0.2f, FPaths::GetPath(m_FileName), 4096) );
 	if(m_MeshGeneratorPtr)
@@ -357,17 +337,20 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 				m_GeoReferencingSystem.ProjectedToEngine(importer->GetMinExtent(), m_LowerLeft);
 				m_LowerLeft.Z = 0.0;
 
-				Transform transform(m_GeoReferencingSystem, m_LowerLeft);
+				auto transformerPtr = GenericTwin::CityGMLCoordinateTransformerFactory::GetInstance().CreateTransformer(m_Layer.m_TransformerName, m_GeoReferencingSystem, m_LowerLeft);
 
-				TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(transform, m_Layer.m_Theme);
-				m_MeshGeneratorPtr->Build(buildings, true);
-				m_MeshGeneratorPtr->CompressTextures(false);
+				if(transformerPtr.IsValid())
+				{
+					TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(*transformerPtr, m_Layer.m_Theme);
+					m_MeshGeneratorPtr->Build(buildings, true);
+					m_MeshGeneratorPtr->CompressTextures(false);
 
-				if(m_Layer.m_DisableCaching == false)
-					m_MeshGeneratorPtr->SaveToCache(m_FileName, m_LowerLeft);
+					if(m_Layer.m_DisableCaching == false)
+						m_MeshGeneratorPtr->SaveToCache(m_FileName, m_LowerLeft);
 
-				if(fillFeatureCache)
-					m_Layer.FillFeatureCache(buildings, m_GeoReferencingSystem, m_LowerLeft);
+					if(fillFeatureCache)
+						m_Layer.FillFeatureCache(buildings, m_GeoReferencingSystem, m_LowerLeft);
+				}
 			}
 		}
 		else if(fillFeatureCache)
@@ -381,14 +364,18 @@ GenericTwin::TJobBasePtr UStreamingCityGMLLayer::LoadModelJob::Execute()
 				m_GeoReferencingSystem.ProjectedToEngine(importer->GetMinExtent(), m_LowerLeft);
 				m_LowerLeft.Z = 0.0;
 
-				Transform transform(m_GeoReferencingSystem, m_LowerLeft);
+				auto transformerPtr = GenericTwin::CityGMLCoordinateTransformerFactory::GetInstance().CreateTransformer(m_Layer.m_TransformerName, m_GeoReferencingSystem, m_LowerLeft);
 
-				TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(transform, "");
+				if (transformerPtr.IsValid())
+				{
 
-				FCityGMLBuildingMeshGenerator meshGenerator(0.2f, FPaths::GetPath(m_FileName), 4096);
-				meshGenerator.Build(buildings, false);
+					TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(*transformerPtr, "");
 
-				m_Layer.FillFeatureCache(buildings, m_GeoReferencingSystem, m_LowerLeft);
+					FCityGMLBuildingMeshGenerator meshGenerator(0.2f, FPaths::GetPath(m_FileName), 4096);
+					meshGenerator.Build(buildings, false);
+
+					m_Layer.FillFeatureCache(buildings, m_GeoReferencingSystem, m_LowerLeft);
+				}
 			}
 		}
 	}

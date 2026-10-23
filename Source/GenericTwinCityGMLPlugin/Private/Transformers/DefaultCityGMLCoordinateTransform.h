@@ -36,9 +36,11 @@ class DefaultCityGMLCoordinateTransform	: public GenericTwin::ICityGMLCoordinate
 {
 public:
 
-	DefaultCityGMLCoordinateTransform(AGeoReferencingSystem &geoRefSystem, const FVector &refPointUE)
-		:	m_GeoRefSystem(geoRefSystem)
-		,	m_RefPointUE(refPointUE)
+	static ICityGMLCoordinateTransformPtr Create(AGeoReferencingSystem &GeoRefSystem, const FVector &RefPointUE);
+
+	DefaultCityGMLCoordinateTransform(AGeoReferencingSystem &GeoRefSystem, const FVector &RefPointUE)
+		:	m_GeoRefSystem(GeoRefSystem)
+		,	m_RefPointUE(RefPointUE)
 	{	}
 
 	virtual FVector operator() (const FVector &pos) override
@@ -55,5 +57,10 @@ private:
 	FVector					m_RefPointUE;
 	float					m_HeightOffset = 0.0f;
 };
+
+ICityGMLCoordinateTransformPtr DefaultCityGMLCoordinateTransform::Create(AGeoReferencingSystem &GeoRefSystem, const FVector &RefPointUE)
+{
+	return ICityGMLCoordinateTransformPtr(new DefaultCityGMLCoordinateTransform(GeoRefSystem, RefPointUE));
+}
 
 }

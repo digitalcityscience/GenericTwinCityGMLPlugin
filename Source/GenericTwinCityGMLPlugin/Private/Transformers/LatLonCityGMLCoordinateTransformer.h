@@ -36,6 +36,8 @@ class LatLonCityGMLCoordinateTransformer	: public GenericTwin::ICityGMLCoordinat
 {
 public:
 
+	static ICityGMLCoordinateTransformPtr Create(AGeoReferencingSystem &GeoRefSystem, const FVector &RefPointUE);
+
 	LatLonCityGMLCoordinateTransformer(AGeoReferencingSystem &geoRefSystem, const FVector &refPointUE)
 		:	m_GeoRefSystem(geoRefSystem)
 		,	m_RefPointUE(refPointUE)
@@ -54,5 +56,10 @@ private:
 	AGeoReferencingSystem	&m_GeoRefSystem;
 	FVector					m_RefPointUE;
 };
+
+ICityGMLCoordinateTransformPtr LatLonCityGMLCoordinateTransformer::Create(AGeoReferencingSystem &GeoRefSystem, const FVector &RefPointUE)
+{
+	return ICityGMLCoordinateTransformPtr(new LatLonCityGMLCoordinateTransformer(GeoRefSystem, RefPointUE));
+}
 
 }

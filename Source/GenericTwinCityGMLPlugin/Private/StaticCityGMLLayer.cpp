@@ -35,6 +35,7 @@ THE SOFTWARE.
 #include "ICityGMLCoordinateTransform.h"
 
 #include "CityGMLBuildingMeshGenerator.h"
+#include "Transformers/CityGMLCoordinateTransformerFactory.h"
 
 #include "Utils/FilePathUtils.h"
 
@@ -143,6 +144,9 @@ void UStaticCityGMLLayer::extractParameters(const FJsonObject &Parameters)
 		for(const auto &p : parts)
 			m_Files.Add( p.TrimStartAndEnd() );
 
+		if (Parameters.HasTypedField<EJson::String>(TEXT("coordinate_transformer")))
+			m_TransformerName = Parameters.GetStringField("coordinate_transformer");
+
 		if (Parameters.HasTypedField<EJson::String>(TEXT("theme")))
 			m_Theme = Parameters.GetStringField("theme");
 
@@ -226,30 +230,6 @@ UStaticCityGMLLayer::LoadModelJob::LoadModelJob(UStaticCityGMLLayer &Layer, AGeo
 
 GenericTwin::TJobBasePtr UStaticCityGMLLayer::LoadModelJob::Execute()
 {
-
-	class Transform	: public GenericTwin::ICityGMLCoordinateTransform
-	{
-	public:
-
-		Transform(AGeoReferencingSystem &geoRefSystem, const FVector &refPointUE)
-			:	m_GeoRefSystem(geoRefSystem)
-			,	m_RefPointUE(refPointUE)
-		{	}
-
-		virtual FVector operator() (const FVector &pos) override
-		{
-			FVector transformed;
-			m_GeoRefSystem.ProjectedToEngine(pos, transformed);
-			transformed -= m_RefPointUE;
-			return transformed;
-		}
-
-	private:
-
-		AGeoReferencingSystem	&m_GeoRefSystem;
-		FVector					m_RefPointUE;
-	};
-
 	m_MeshGeneratorPtr = TSharedPtr<FCityGMLBuildingMeshGenerator>( new FCityGMLBuildingMeshGenerator(0.2f, FPaths::GetPath(m_FileName), 4096) );
 	if(m_MeshGeneratorPtr)
 	{
@@ -265,14 +245,17 @@ GenericTwin::TJobBasePtr UStaticCityGMLLayer::LoadModelJob::Execute()
 				m_GeoReferencingSystem.ProjectedToEngine(importer->GetMinExtent(), m_LowerLeft);
 				m_LowerLeft.Z = 0.0;
 
-				Transform transform(m_GeoReferencingSystem, m_LowerLeft);
+				auto transformerPtr = GenericTwin::CityGMLCoordinateTransformerFactory::GetInstance().CreateTransformer(m_Layer.m_TransformerName, m_GeoReferencingSystem, m_LowerLeft);
 
-				TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(transform, m_Layer.m_Theme);
-				m_MeshGeneratorPtr->Build(buildings, true);
-				m_MeshGeneratorPtr->CompressTextures(false);
+				if(transformerPtr.IsValid())
+				{
+					TArray<GenericTwin::SCityGMLBuilding> buildings = importer->GetBuildings(*transformerPtr, m_Layer.m_Theme);
+					m_MeshGeneratorPtr->Build(buildings, true);
+					m_MeshGeneratorPtr->CompressTextures(false);
 
-				if(m_Layer.m_DisableCaching == false)
-					m_MeshGeneratorPtr->SaveToCache(m_FileName, m_LowerLeft);
+					if(m_Layer.m_DisableCaching == false)
+						m_MeshGeneratorPtr->SaveToCache(m_FileName, m_LowerLeft);
+				}
 
 			}
 		}

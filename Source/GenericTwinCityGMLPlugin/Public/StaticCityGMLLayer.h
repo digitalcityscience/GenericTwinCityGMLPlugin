@@ -103,6 +103,7 @@ private:
 
 	bool										m_DisableCaching = false;
 
+	FString										m_TransformerName;
 	FString										m_Theme;
 
 	FLinearColor								m_WallAlbedo = FLinearColor(0.2, 0.2, 0.2, 1.0);
