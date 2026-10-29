@@ -69,8 +69,10 @@ TSharedPtr<FJsonObject> UStaticCityGMLLayer::GetDefaultConfiguration()
 	{
 		ConfigurationJsonBuilder jcb;
 		jcb.Begin();
-		jcb.Add(TEXT("base_path"), TEXT("string"), TEXT("Verzeichnis"), false);
-		jcb.Add(TEXT("files"), TEXT("string"), TEXT("CityGML Dateien"), false);
+		jcb.AddLiteralValue(TEXT("base_path"), TEXT("string"), TEXT("Directory"), false, TEXT("\"\""));
+		jcb.AddLiteralValue(TEXT("files"), TEXT("string"), TEXT("CityGML File(s)"), false, TEXT("\"\""));
+		jcb.AddStringOption(TEXT("coordinate_transformer"), TEXT("Coordinate Transformer"), false, {TEXT("Default"), TEXT("LatLonTransformer")});
+		jcb.AddLiteralValue(TEXT("theme"), TEXT("string"), TEXT("Texture Theme"), false, TEXT("\"\""));
 		jcb.AddLiteralValue(TEXT("roof_albedo"), TEXT("color"), TEXT("Dachfarbe"), false, TEXT("[0.8,0.3,0.0]"));
 		jcb.AddLiteralValue(TEXT("wall_albedo"), TEXT("color"), TEXT("Wandfarbe"), false, TEXT("[0.4,0.4,0.4]"));
 		defaultConfig = jcb.Finalize();
