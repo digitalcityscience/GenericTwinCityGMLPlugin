@@ -239,7 +239,7 @@ const TSharedPtr<FJsonObject> UStreamingCityGMLLayer::GetRuntimeConfiguration() 
 
 	cfgBuilder.Begin();
 
-	cfgBuilder.AddLiteralValue(TEXT("height_offset_m"), TEXT("number"), TEXT("Höhenoffset in m"), true, FString::SanitizeFloat(m_HeightOffset));
+	cfgBuilder.AddLiteralValue(TEXT("height_offset_m"), TEXT("number"), TEXT("Höhenoffset in m"), true, FString::SanitizeFloat(m_HeightOffset * 0.01));
 
 	return cfgBuilder.Finalize();
 }
